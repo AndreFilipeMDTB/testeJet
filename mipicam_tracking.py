@@ -3,7 +3,7 @@ import numpy as np
 import collections
 import threading
 import pycuda.driver as cuda
-
+from imutils.video import VideoStream
 from utils.ssd import TrtSSD
 from filterpy.kalman import KalmanFilter
 from numba import jit
@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 s_img, s_boxes = None, None
 INPUT_HW = (300, 300)
-MAIN_THREAD_TIMEOUT = 20.0  # 20 seconds
+MAIN_THREAD_TIMEOUT = 100.0  # 20 seconds
 
 # SORT Multi object tracking
 
@@ -197,7 +197,8 @@ class TrtThread(threading.Thread):
         print('TrtThread: start running...')
         self.running = True
         while self.running:
-            ret, img = self.cam.read()
+            #print(self.running)   
+            img = self.cam.read()
             if img is None:
                 break
             img = cv2.resize(img, (300, 300))
@@ -205,6 +206,7 @@ class TrtThread(threading.Thread):
             with self.condition:
                 s_img, s_boxes = img, boxes
                 self.condition.notify()
+        print(self.running)  
         del self.trt_ssd
         self.cuda_ctx.pop()
         del self.cuda_ctx
@@ -330,10 +332,10 @@ def gstreamer_pipeline(
 
 if __name__ == '__main__':
     model = 'ssd_mobilenet_v1_coco'
-    cam = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
-    
-    if not cam.isOpened():
-        raise SystemExit('ERROR: failed to open camera!')
+    #cam = cv2.VideoCapture('rtsp://admin:Bionic21996@192.168.1.14')  
+    cam = VideoStream('rtsp://admin:Bionic21996@192.168.1.14').start()   
+    #if not cam.isOpened():
+     #   raise SystemExit('ERROR: failed to open camera!')
 
     cuda.init()  # init pycuda driver
 
